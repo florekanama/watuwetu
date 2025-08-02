@@ -4,8 +4,9 @@ import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 import AdminDashboard from './AdminDashboard/page'
 import MedecinDashboard from './MedecinDashboard/page'
-import PatientDashboard from './PatientDashboard/page'
 import Loader from '@/components/Loader'
+import PatientDas
+import PatientDash from '@/components/PatientDash'
 export default function Dashboard() {
   const { user, loading } = useAuth()
   const router = useRouter()
@@ -26,7 +27,7 @@ export default function Dashboard() {
     case 'medecin':
       return <MedecinDashboard />
     case 'patient':
-      return <PatientDashboard />
+      return <PatientDash/>
     default:
       return <div>Rôle non reconnu</div>
   }
