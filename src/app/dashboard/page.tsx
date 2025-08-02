@@ -5,7 +5,7 @@ import { useEffect } from 'react'
 import AdminDashboard from './AdminDashboard/page'
 import MedecinDashboard from './MedecinDashboard/page'
 import Loader from '@/components/Loader'
-import PatientDas
+
 import PatientDash from '@/components/PatientDash'
 export default function Dashboard() {
   const { user, loading } = useAuth()
