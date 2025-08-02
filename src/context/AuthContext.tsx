@@ -1,11 +1,12 @@
 
+
 // 'use client'
 // import { createContext, useContext, useEffect, useState, useCallback } from 'react'
 // import { useRouter } from 'next/navigation'
 // import { supabase } from '@/lib/supabase/client'
 
 // type UserRole = 'admin' | 'medecin' | 'patient'
- 
+
 // interface User {
 //   id: string
 //   nom: string
@@ -80,44 +81,83 @@
 //     return () => subscription?.unsubscribe()
 //   }, [fetchUserProfile])
 
-//   const signUp = async (nom: string, email: string, password: string, role: UserRole) => {
-//     try {
-//       setLoading(true)
+//   // const signUp = async (nom: string, email: string, password: string, role: UserRole) => {
+//   //   try {
+//   //     setLoading(true)
       
-//       const { data: authData, error: authError } = await supabase.auth.signUp({
-//         email,
-//         password,
-//         options: { data: { nom, role } }
-//       })
+//   //     const { data: authData, error: authError } = await supabase.auth.signUp({
+//   //       email,
+//   //       password,
+//   //       options: { data: { nom, role } }
+//   //     })
 
-//       if (authError) throw authError
-//       if (!authData.user) throw new Error('User creation failed')
+//   //     if (authError) throw authError
+//   //     if (!authData.user) throw new Error('User creation failed')
 
-//       const { error: profileError } = await supabase
-//         .from('users')
-//         .insert([{
-//           id: authData.user.id,
-//           nom,
-//           email,
-//           role,
-//           statut: true
-//         }])
+//   //     const { error: profileError } = await supabase
+//   //       .from('users')
+//   //       .insert([{
+//   //         id: authData.user.id,
+//   //         nom,
+//   //         email,
+//   //         role,
+//   //         statut: true
+//   //       }])
 
-//       if (profileError) throw profileError
+//   //     if (profileError) throw profileError
 
-//       return {}
-//     } catch (error: any) {
-//       console.error('SignUp error:', error)
-//       return { 
-//         error: error.message.includes('already registered') 
-//           ? 'Un compte existe déjà avec cet email' 
-//           : "Erreur lors de l'inscription" 
+//   //     return {}
+//   //   } catch (error: any) {
+//   //     console.error('SignUp error:', error)
+//   //     return { 
+//   //       error: error.message.includes('already registered') 
+//   //         ? 'Un compte existe déjà avec cet email' 
+//   //         : "Erreur lors de l'inscription" 
+//   //     }
+//   //   } finally {
+//   //     setLoading(false)
+//   //   }
+//   // }
+// const signUp = async (nom: string, email: string, password: string, role: UserRole) => {
+//   try {
+//     setLoading(true);
+    
+//     const { data: authData, error: authError } = await supabase.auth.signUp({
+//       email,
+//       password,
+//       options: {
+//         data: { nom, role } // This stores metadata in auth.users
 //       }
-//     } finally {
-//       setLoading(false)
-//     }
-//   }
+//     });
 
+//     if (authError) throw authError;
+//     if (!authData.user) throw new Error('User creation failed');
+
+//     // Create minimal profile in public.users
+//     const { error: profileError } = await supabase
+//       .from('users')
+//       .insert([{
+//         id: authData.user.id,
+//         nom,
+//         email,
+//         role,
+//         statut: true
+//       }]);
+
+//     if (profileError) throw profileError;
+
+//     return {};
+//   } catch (error: any) {
+//     console.error('SignUp error:', error);
+//     return { 
+//       error: error.message.includes('already registered') 
+//         ? 'Un compte existe déjà avec cet email' 
+//         : "Erreur lors de l'inscription" 
+//     };
+//   } finally {
+//     setLoading(false);
+//   }
+// };
 //   const signIn = async (email: string, password: string) => {
 //     try {
 //       setLoading(true)
@@ -221,7 +261,6 @@
 //   }
 //   return context
 // }
-
 'use client'
 import { createContext, useContext, useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
@@ -269,23 +308,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       console.error('Error fetching profile:', error)
       setUser(null)
-    } finally {
-      setLoading(false)
     }
   }, [])
 
   useEffect(() => {
+    let mounted = true
+
     const getSession = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession()
+        const { data: { session }, error } = await supabase.auth.getSession()
+        
+        if (error) throw error
+        
         if (session?.user) {
           await fetchUserProfile(session.user.id)
-        } else {
-          setLoading(false)
         }
       } catch (error) {
         console.error('Error fetching session:', error)
-        setLoading(false)
+      } finally {
+        if (mounted) setLoading(false)
       }
     }
 
@@ -296,90 +337,55 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         await fetchUserProfile(session.user.id)
       } else if (event === 'SIGNED_OUT') {
         setUser(null)
-        setLoading(false)
       }
     })
 
-    return () => subscription?.unsubscribe()
+    return () => {
+      mounted = false
+      subscription?.unsubscribe()
+    }
   }, [fetchUserProfile])
 
-  // const signUp = async (nom: string, email: string, password: string, role: UserRole) => {
-  //   try {
-  //     setLoading(true)
+  const signUp = async (nom: string, email: string, password: string, role: UserRole) => {
+    try {
+      setLoading(true)
       
-  //     const { data: authData, error: authError } = await supabase.auth.signUp({
-  //       email,
-  //       password,
-  //       options: { data: { nom, role } }
-  //     })
-
-  //     if (authError) throw authError
-  //     if (!authData.user) throw new Error('User creation failed')
-
-  //     const { error: profileError } = await supabase
-  //       .from('users')
-  //       .insert([{
-  //         id: authData.user.id,
-  //         nom,
-  //         email,
-  //         role,
-  //         statut: true
-  //       }])
-
-  //     if (profileError) throw profileError
-
-  //     return {}
-  //   } catch (error: any) {
-  //     console.error('SignUp error:', error)
-  //     return { 
-  //       error: error.message.includes('already registered') 
-  //         ? 'Un compte existe déjà avec cet email' 
-  //         : "Erreur lors de l'inscription" 
-  //     }
-  //   } finally {
-  //     setLoading(false)
-  //   }
-  // }
-const signUp = async (nom: string, email: string, password: string, role: UserRole) => {
-  try {
-    setLoading(true);
-    
-    const { data: authData, error: authError } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { nom, role } // This stores metadata in auth.users
-      }
-    });
-
-    if (authError) throw authError;
-    if (!authData.user) throw new Error('User creation failed');
-
-    // Create minimal profile in public.users
-    const { error: profileError } = await supabase
-      .from('users')
-      .insert([{
-        id: authData.user.id,
-        nom,
+      const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
-        role,
-        statut: true
-      }]);
+        password,
+        options: {
+          data: { nom, role }
+        }
+      })
 
-    if (profileError) throw profileError;
+      if (authError) throw authError
+      if (!authData.user) throw new Error('User creation failed')
 
-    return {};
-  } catch (error: any) {
-    console.error('SignUp error:', error);
-    return { 
-      error: error.message.includes('already registered') 
-        ? 'Un compte existe déjà avec cet email' 
-        : "Erreur lors de l'inscription" 
-    };
-  } finally {
-    setLoading(false);
+      const { error: profileError } = await supabase
+        .from('users')
+        .insert([{
+          id: authData.user.id,
+          nom,
+          email,
+          role,
+          statut: true
+        }])
+
+      if (profileError) throw profileError
+
+      return {}
+    } catch (error: any) {
+      console.error('SignUp error:', error)
+      return { 
+        error: error.message.includes('already registered') 
+          ? 'Un compte existe déjà avec cet email' 
+          : "Erreur lors de l'inscription" 
+      }
+    } finally {
+      setLoading(false)
+    }
   }
-};
+
   const signIn = async (email: string, password: string) => {
     try {
       setLoading(true)
@@ -404,8 +410,11 @@ const signUp = async (nom: string, email: string, password: string, role: UserRo
       await supabase.auth.signOut()
       setUser(null)
       router.push('/login')
+      router.refresh()
     } catch (error) {
       console.error('Error signing out:', error)
+      setUser(null)
+      router.push('/login')
     } finally {
       setLoading(false)
     }
